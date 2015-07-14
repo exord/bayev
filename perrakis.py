@@ -5,7 +5,7 @@ from math import sqrt, log
 import lib
 
 
-def compute_perrakis_estimate(marginal_samples, loglike, prior,
+def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
                               likeargs=(), priorargs=(),
                               densityestimation='histogram', **kwargs):
     """
@@ -18,13 +18,13 @@ def compute_perrakis_estimate(marginal_samples, loglike, prior,
     posterior distribution. Dimensions are (n x k), where k is the number of
     parameters.
 
-    :param callable loglike: function to compute ln(likelihood) on the \
+    :param callable lnlike: function to compute ln(likelihood) on the \
     marginal samples.
-    :param callable prior: function to compute ln(prior density) on the \
+    :param callable lnprior: function to compute ln(prior density) on the \
     marginal samples.
 
     :param tuple likeargs: extra arguments passed to the likelihood function.
-    :param tuple priorargs: extra arguments passed to the prior function.
+    :param tuple priorargs: extra arguments passed to the lnprior function.
 
     :param str densityestimation: the method used to estimate the marginal \
     posterior density of each model parameter ("normal", "kde", or "histogram").
@@ -66,12 +66,12 @@ def compute_perrakis_estimate(marginal_samples, loglike, prior,
     ##
 
     ##
-    # Compute prior and likelihood in marginal sample.
-    log_prior = prior(marginal_samples, *priorargs)
-    log_likelihood = loglike(marginal_samples, *likeargs)
+    # Compute lnprior and likelihood in marginal sample.
+    log_prior = lnprior(marginal_samples, *priorargs)
+    log_likelihood = lnlike(marginal_samples, *likeargs)
     ##
 
-    # Mask values with zero likelihood (a problem in loglike)
+    # Mask values with zero likelihood (a problem in lnlike)
     cond = log_likelihood != 0
 
     # Use identity for summation
