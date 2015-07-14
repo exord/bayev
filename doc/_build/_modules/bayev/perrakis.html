@@ -1,0 +1,341 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>bayev.perrakis &mdash; bayev 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="bayev 1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for bayev.perrakis</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">log</span>
+
+<span class="kn">import</span> <span class="nn">importlib</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">lib</span>
+
+
+<div class="viewcode-block" id="compute_perrakis_estimate"><a class="viewcode-back" href="../../index.html#bayev.perrakis.compute_perrakis_estimate">[docs]</a><span class="k">def</span> <span class="nf">compute_perrakis_estimate</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">,</span> <span class="n">loglike</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span>
+                              <span class="n">likeargs</span><span class="o">=</span><span class="p">(),</span> <span class="n">priorargs</span><span class="o">=</span><span class="p">(),</span>
+                              <span class="n">densityestimation</span><span class="o">=</span><span class="s">&#39;histogram&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the Perrakis estimate of the bayesian evidence.</span>
+
+<span class="sd">    The estimation is based on n marginal posterior samples</span>
+<span class="sd">    (indexed by s, with s = 0, ..., n-1).</span>
+
+<span class="sd">    :param array marginal_samples: samples from the parameter marginal\</span>
+<span class="sd">    posterior distribution. Dimensions are (n x k), where k is the number of parameters.</span>
+
+<span class="sd">    :param callable loglike: function to compute ln(likelihood) on the \</span>
+<span class="sd">    marginal samples.</span>
+<span class="sd">    :param callable prior: function to compute ln(prior density) on the \</span>
+<span class="sd">    marginal samples.</span>
+
+<span class="sd">    :param tuple likeargs: extra arguments passed to the likelihood function.</span>
+<span class="sd">    :param tuple priorargs: extra arguments passed to the prior function.</span>
+
+<span class="sd">    :param str densityestimation: the method used to estimate the marginal \</span>
+<span class="sd">    posterior density of each model parameter (&quot;normal&quot;, &quot;kde&quot;, or &quot;histogram&quot;).</span>
+
+
+<span class="sd">    Other parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    :param kwargs: additional arguments passed to estimate_density function.</span>
+<span class="sd">        :param nbins: number of bins used in &quot;histogram method&quot;.</span>
+<span class="sd">        :type nbins: int</span>
+
+<span class="sd">    :return:</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Perrakis et al. (2014; arXiv:1311.0674)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">marginal_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">)</span>
+
+    <span class="n">number_parameters</span> <span class="o">=</span> <span class="n">marginal_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c">##</span>
+    <span class="c"># Estimate marginal posterior density for each parameter.</span>
+    <span class="n">marginal_posterior_density</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">marginal_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">parameter_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_parameters</span><span class="p">):</span>
+
+        <span class="c"># Extract samples for this parameter.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">marginal_samples</span><span class="p">[:,</span> <span class="n">parameter_index</span><span class="p">]</span>
+
+        <span class="c"># Estimate density with method &quot;densityestimation&quot;.</span>
+        <span class="n">marginal_posterior_density</span><span class="p">[</span><span class="n">parameter_index</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">estimate_density</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">densityestimation</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c"># Compute produt of marginal posterior densities for all parameters</span>
+    <span class="n">prod_marginal_densities</span> <span class="o">=</span> <span class="n">marginal_posterior_density</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c">##</span>
+
+    <span class="c">##</span>
+    <span class="c"># Compute prior and likelihood in marginal sample.</span>
+    <span class="n">log_prior</span> <span class="o">=</span> <span class="n">prior</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">,</span> <span class="o">*</span><span class="n">priorargs</span><span class="p">)</span>
+    <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">loglike</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">,</span> <span class="o">*</span><span class="n">likeargs</span><span class="p">)</span>
+    <span class="c">##</span>
+
+    <span class="c"># Mask values with zero likelihood (a problem in loglike)</span>
+    <span class="n">cond</span> <span class="o">=</span> <span class="n">log_likelihood</span> <span class="o">!=</span> <span class="mi">0</span>
+
+    <span class="c"># Use identity for summation</span>
+    <span class="c"># http://en.wikipedia.org/wiki/List_of_logarithmic_identities#Summation.2Fsubtraction</span>
+    <span class="c"># ln(sum(x)) = ln(x[0]) + ln(1 + sum( exp( ln(x[1:]) - ln(x[0]) ) ) )</span>
+    <span class="c"># log_summands = log_likelihood[cond] + np.log(prior_probability[cond])</span>
+    <span class="c">#  - np.log(prod_marginal_densities[cond])</span>
+    <span class="n">log_summands</span> <span class="o">=</span> <span class="n">log_likelihood</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_prior</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span> <span class="o">-</span> \
+                    <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prod_marginal_densities</span><span class="p">[</span><span class="n">cond</span><span class="p">])</span>
+
+    <span class="n">perr</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">log_sum</span><span class="p">(</span><span class="n">log_summands</span><span class="p">)</span> <span class="o">-</span> <span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">log_summands</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">perr</span>
+
+</div>
+<div class="viewcode-block" id="estimate_density"><a class="viewcode-back" href="../../index.html#bayev.perrakis.estimate_density">[docs]</a><span class="k">def</span> <span class="nf">estimate_density</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;histogram&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimate probability density based on a sample. Return value of density at</span>
+<span class="sd">    sample points.</span>
+
+<span class="sd">    :param array_like x: sample</span>
+<span class="sd">    :param str method: method used for the estimation. &#39;histogram&#39; estimates \</span>
+<span class="sd">    the density based on a normalised histogram of nbins bins; &#39;kde&#39; uses a 1D \</span>
+<span class="sd">    non-parametric gaussian kernel; &#39;normal approximates the distribution by a \</span>
+<span class="sd">    normal distribution</span>
+
+<span class="sd">    Additional parameters</span>
+
+<span class="sd">    :param int nbins: number of bins used in &quot;histogram method&quot;.</span>
+
+<span class="sd">    :return: density estimation at the sample points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nbins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;nbins&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s">&#39;normal&#39;</span><span class="p">:</span>
+        <span class="c"># Approximate each parameter distribution by a normal.</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">scale</span><span class="o">=</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">var</span><span class="p">()))</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s">&#39;kde&#39;</span><span class="p">:</span>
+        <span class="c"># Approximate each parameter distribution using a gaussian</span>
+        <span class="c"># kernel estimation</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">x</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s">&#39;histogram&#39;</span><span class="p">:</span>
+        <span class="c"># Approximate each parameter distribution based on the histogram</span>
+        <span class="c"># Uses nbins keyword parameter.</span>
+        <span class="n">density</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="c"># Find to which bin each element corresponds</span>
+        <span class="n">density_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin_edges</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s">&#39;left&#39;</span><span class="p">)</span>
+
+        <span class="c"># Correct to avoid index zero from being assiged to last element</span>
+        <span class="n">density_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">density_indexes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">density_indexes</span><span class="p">,</span>
+                                   <span class="n">density_indexes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">density</span><span class="p">[</span><span class="n">density_indexes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+</div>
+<span class="k">def</span> <span class="nf">make_marginal_samples</span><span class="p">(</span><span class="n">joint_samples</span><span class="p">,</span> <span class="n">nsamples</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reshuffles samples from joint distribution of k parameters to obtain samples</span>
+<span class="sd">    from the _marginal_ distribution of each parameter.</span>
+
+<span class="sd">    :param joint_samples: samples from the parameter joint distribution.</span>
+<span class="sd">    :type joint_samples: array_like (n x k), where k is the number of paramters</span>
+<span class="sd">    :param nsamples: number of samples to produce. If 0, use number of joint</span>
+<span class="sd">    samples.</span>
+<span class="sd">    :type nsamples: int or None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># Copy joint samples before reshuffling in place.</span>
+    <span class="c"># Keep only last nsamples</span>
+    <span class="c"># WARNING! Always taking the last nsamples. This is not changed</span>
+    <span class="c"># with MonteCarlo</span>
+    <span class="k">if</span> <span class="n">nsamples</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">joint_samples</span><span class="p">)</span> <span class="ow">or</span> <span class="n">nsamples</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">nsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">joint_samples</span><span class="p">)</span>
+
+    <span class="n">marginal_samples</span> <span class="o">=</span> <span class="n">joint_samples</span><span class="p">[</span><span class="o">-</span><span class="n">nsamples</span><span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">number_parameters</span> <span class="o">=</span> <span class="n">marginal_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c"># Reshuffle joint posterior samples to obtain _marginal_ posterior</span>
+    <span class="c"># samples</span>
+    <span class="k">for</span> <span class="n">parameter_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_parameters</span><span class="p">):</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">marginal_samples</span><span class="p">[:,</span> <span class="n">parameter_index</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">marginal_samples</span>
+
+
+<span class="k">def</span> <span class="nf">compute_perrakis_estimate_old</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">simul</span><span class="p">,</span> <span class="n">nsamples</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the evidence for simulation simul of target using estimator by</span>
+<span class="sd">    Perrakis et al. (2014; arXiv:1311.0674)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target, str</span>
+<span class="sd">        Name of the target.</span>
+
+<span class="sd">    simul, str</span>
+<span class="sd">        String identifiying the simulation for which the computation is to</span>
+<span class="sd">        be done.</span>
+
+<span class="sd">    Other parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    nsamples, int</span>
+<span class="sd">        Number of samples from marginal posteriors. If None, or if larger than</span>
+<span class="sd">        samples from joint posterior use the same number of samples as posterior</span>
+<span class="sd">        samples.</span>
+
+<span class="sd">    nmc, int</span>
+<span class="sd">        Number of times the computation is repeated with different samples</span>
+<span class="sd">        from the posterior (not from the proposal density!) to compute error.</span>
+
+<span class="sd">    datadict, dict</span>
+<span class="sd">        Datadict obtained using DataReader. If None, datadict will be</span>
+<span class="sd">        constructed from input_dict. Useful to save time when performing a</span>
+<span class="sd">        series of computation involving the same datadict.</span>
+
+<span class="sd">    mergefile, str</span>
+<span class="sd">        Name (including path) of merged chain file. If None, it will be</span>
+<span class="sd">        constructed from target and simulation name.</span>
+
+<span class="sd">    pastisfile, str</span>
+<span class="sd">        Name (including path) of .pastis configuration file. If None, it will</span>
+<span class="sd">        be constructed from simulation name.</span>
+
+<span class="sd">    method, str</span>
+<span class="sd">        The method used to estimate the marginal posterior densities of the</span>
+<span class="sd">        parameters.</span>
+<span class="sd">        Options are:</span>
+<span class="sd">            - &quot;normal&quot;: approximate by a normal distribution with same mean</span>
+<span class="sd">                and variance.</span>
+
+<span class="sd">            - &quot;kde&quot;: use gaussian kernel method implemented in</span>
+<span class="sd">                scipy.stats.gaussian_kde</span>
+
+<span class="sd">    nmc, int</span>
+<span class="sd">        Number of times the computation is performed to estimate dispersion.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    logE, array</span>
+<span class="sd">        Estimate of the log(n)(Evidence)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_marginal_samples</span> <span class="o">=</span> <span class="n">marginal_posterior_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">number_parameters</span> <span class="o">=</span> <span class="n">joint_posterior_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c"># Perform computation number_montecarlo_runs times</span>
+    <span class="n">perrakis_evidence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">number_montecarlo_runs</span><span class="p">)</span>
+
+    <span class="n">timei</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_montecarlo_runs</span><span class="p">):</span>
+
+        <span class="c"># Print progress</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;Iteration {} out of {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iteration</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                                  <span class="n">number_montecarlo_runs</span><span class="p">))</span>
+
+
+    <span class="c"># Estimate _marginal_ posterior probability for each parameter.</span>
+
+    <span class="c"># Use identity for summation</span>
+    <span class="c"># http://en.wikipedia.org/wiki/List_of_logarithmic_identities#Summation.2Fsubtraction</span>
+    <span class="c"># ln(sum(x)) = ln(x[0]) + ln(1 + sum( exp( ln(x[1:]) - ln(x[0]) ) ) )</span>
+    <span class="c"># log_summands = log_likelihood[cond] + np.log(prior_probability[cond])</span>
+    <span class="c">#  - np.log(prod_marginal_densities[cond])</span>
+    <span class="n">log_summands</span> <span class="o">=</span> <span class="n">log_likelihood</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prior_probability</span><span class="p">[</span><span class="n">cond</span><span class="p">])</span> <span class="o">-</span> \
+                <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prod_marginal_densities</span><span class="p">[</span><span class="n">cond</span><span class="p">])</span>
+
+    <span class="n">perr</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">log_sum</span><span class="p">(</span><span class="n">log_summands</span><span class="p">)</span> <span class="o">-</span> <span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">log_summands</span><span class="p">))</span>
+
+    <span class="n">perrakis_evidence</span><span class="p">[</span><span class="n">iteration</span><span class="p">]</span> <span class="o">=</span> <span class="n">perr</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Running time without initialisation: &#39;</span>
+          <span class="s">&#39;{:.2f} minutes&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timei</span><span class="p">)</span><span class="o">/</span><span class="mf">60.0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">perrakis_evidence</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Rodrigo F. Díaz.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
