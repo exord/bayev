@@ -14,8 +14,6 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
                         lnpriorargs=(), lnlike_post=None, lnprior_post=None):
 
     """
-    proposal_samples,  propdensityfunc,
-                        mratiofunc, nsamples=1e3, **kwargs):
 
     :param array lnlike_post:
         log(likelihood) computed over a posterior sample. 1-D array of length n.
@@ -108,9 +106,16 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
     # Compute likelihood and prior on proposal_sample
     lnlike_prop = lnlikefunc(proposal_sample, *lnlikeargs)
     lnprior_prop = lnpriorfunc(proposal_sample, *lnpriorargs)
+    # Note that values from the proposal distribution sample outside of the
+    # prior support will get lnprior_prop = -np.inf. This is correctly taken
+    # into account naturally in what follows. We check, however, that not
+    # all samples have zero prior probability
+    if np.all(lnprior_prop == -np.inf):
+        raise ValueError('All samples from proposal density have zero prior'
+                         'probability. Increase nsample.')
 
     # Get Metropolis ratio with respect to fixed point over proposal sample
-    lnalpha_prop = metropolis_ratio(lnprior_prop + lnlike_prop, lnpost0)
+    lnalpha_prop = metropolis_ratio(lnpost0, lnprior_prop + lnlike_prop)
 
     # Compute estimate of posterior ordinate (see Eq. 9 from reference)
     num = lib.log_sum(lnalpha_post + q_post) - log(len(posterior_sample))

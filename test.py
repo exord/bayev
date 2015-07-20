@@ -2,8 +2,13 @@ __author__ = 'Rodrigo F. Diaz'
 
 import pickle
 import bayev.pastislib as pl
+import bayev.chib as chib
+import bayev.perrakis as perr
+import bayev.lib
 import numpy as n
-from math import e
+from math import e, log10
+import time
+import matplotlib.pylab as plt
 
 
 def test_pastis_logprior(nsamples=300):
@@ -64,8 +69,6 @@ def test_perrakis(nsamples=300):
     vd.pop('logL')
     vd.pop('posterior')
 
-    import bayev.perrakis as perr
-
     # Produce marginal sample from joint sample
     joint_samples = n.array(vd.values()).T
     marg_samples = perr.make_marginal_samples(joint_samples, nsamples)
@@ -81,5 +84,135 @@ def test_perrakis(nsamples=300):
     return
 
 
+def test_chib(nsamples=300):
+
+    target = 'PlSystem1'
+    simul = 'k4d3_activityterm_noisemodel1'
+
+    # Read test data
+    f = open('/Users/rodrigo/homeobs/PASTIS/resultfiles/{0}/'
+             '{0}_{1}_Beta1.000000_mergedchain.dat'.format(target, simul))
+    vd = pickle.load(f)
+    vd = vd.get_value_dict()
+    f.close()
+
+    # Remove unnecessary items
+    lnlike_post = vd.pop('logL')
+    post = vd.pop('posterior')
+    lnpost_post = post/log10(e)
+    lnprior_post = lnpost_post - lnlike_post
+
+    # Produce marginal sample from joint sample
+    posterior_sample = n.array(vd.values()).T
+
+    # Compute Perrakis estimate
+    pe = chib.compute_cj_estimate(posterior_sample, pl.pastis_loglike,
+                                  pl.pastis_logprior, lnlike_post, nsamples,
+                                  lnlikeargs=(vd.keys(), target, simul),
+                                  lnpriorargs=(vd.keys(), target, simul),
+                                  lnlike_post=lnlike_post,
+                                  lnprior_post=lnprior_post)
+
+    print('Chib estimate is {:.4f}'.format(pe))
+    return
+
+
+def test_chib2(posterior_sample, lnlike_post, lnprior_post):
+
+    target = 'PlSystem1'
+    simul = 'k2d3_activityterm_noisemodel1'
+
+    # Read test data
+    f = open('/Users/rodrigo/homeobs/PASTIS/resultfiles/{0}/'
+             '{0}_{1}_Beta1.000000_mergedchain.dat'.format(target, simul))
+    vd = pickle.load(f)
+    vd = vd.get_value_dict()
+    f.close()
+
+    # Remove unnecessary items
+    lnlike_post = vd.pop('logL')
+    post = vd.pop('posterior')
+    lnpost_post = post/log10(e)
+    lnprior_post = lnpost_post - lnlike_post
+
+    # Produce marginal sample from joint sample
+    posterior_sample = n.array(vd.values()).T
+
+    fp, lnpost0 = get_fixed_point(posterior_sample, lnlike_post,
+                                  (lnlike_post, lnprior_post))
+
+    k = np.cov(posterior_sample.T)
+    qprob = lib.MultivariateGaussian(fp, k)
+
+    return qprob
+
+
+def benchmark_multivariate(nsamples=2 ** n.arange(6, 14),
+                           kdim=2 ** n.arange(4, 10)):
+
+    dt = [('cholesky', n.float64),
+          ('solve', n.float64)
+          ]
+
+    times = n.empty(len(kdim), dtype=dt)
+    works = n.empty(len(kdim), dtype=bool)
+
+    for i, k in enumerate(kdim):
+        print k
+
+        r = n.random.rand(nsamples, k)
+        c = n.cov(r, rowvar=0)
+        c[n.diag_indices_from(c)] += 1e-10
+
+        ti = time.time()
+
+        mvsolve = n.empty(r.shape[0])
+        mvcho = n.empty(r.shape[0])
+
+        for j in range(len(r)):
+            mvcho[j] = bayev.lib.multivariate_normal(r[j], c, method='cholesky')
+
+        tint = time.time()
+        times['cholesky'][i] = tint - ti
+
+        for j in range(len(r)):
+            mvsolve[j] = bayev.lib.multivariate_normal(r[j], c, method='solve')
+
+        times['solve'][i] = time.time() - tint
+
+        works[i] = n.allclose(mvsolve, mvcho)
+
+    plt.ion()
+    fig = plt.figure()
+    factor = n.polyfit(n.log10(kdim), n.log10(times['cholesky']), 1)
+    ax = fig.add_subplot(111)
+    ax.loglog(kdim, times['cholesky']/nsamples, '-o',
+              label='cholesky [{:.2f}]'.format(factor[0]))
+    factor = n.polyfit(n.log10(kdim), n.log10(times['solve']), 1)
+    ax.loglog(kdim, times['solve']/nsamples, '-o',
+              label='solve [{:.2f}]'.format(factor[0]))
+    ax.legend(loc="lower right")
+    ax.set_xlabel('Vector dimension')
+    ax.set_ylabel('Time [s]')
+    plt.show()
+    print(works)
+    return times
+
+
+def check_fixed_point(posterior_samples, fixed_point, labels=None):
+
+    ax = plt.figure().add_subplot(111)
+    for i in range(len(fixed_point)):
+        ax.hist(posterior_samples[:, i], 100)
+        ax.axvline(fixed_point[i], color='r', lw=2)
+        if labels is not None:
+            ax.set_title(labels[i])
+        plt.draw()
+        raw_input('Hit any key to see next parameter.')
+        plt.clf()
+    return
+
 if __name__ == '__main__':
-    test_perrakis(nsamples=500)
+    test_chib(500)
+    pass
+    # benchmark_multivariate(nsamples=512)

@@ -7,7 +7,7 @@ import math
 
 def log_sum(log_summands):
     a = np.inf
-    while a == np.inf:
+    while a == np.inf or a == -np.inf or np.isnan(a):
         a = log_summands[0] + np.log(1 + np.sum(np.exp(log_summands[1:] -
                                                        log_summands[0])))
         random.shuffle(log_summands)
@@ -54,10 +54,31 @@ def multivariate_normal(r, c, method='cholesky'):
 class MultivariateGaussian(scipy.stats.rv_continuous):
     def __init__(self, mu, cov):
         self.mu = mu
-        self.covariance = cov
+        self.covariance = cov + 1e-10
+        self.dimensions = len(cov)
 
+    # CHANGE THIS TO COMPUTE ON MULTI DIMENSIONAL x....
     def pdf(self, x, method='cholesky'):
-        return multivariate_normal(x - self.mu, self.covariance, method)
+        if 1 < len(x.shape) < 3:
+            # Input array is multi-dimensional
+            # Check that input array is well aligned with covariance.
+            if x.T.shape[0] != len(self.covariance):
+                raise ValueError('Input array not aligned with covariance. '
+                                 'It must have dimensions (n x k), where k is '
+                                 'the dimension of the multivariate Gaussian.')
+
+            # If ok, create array to contain results
+            mvg = np.zeros(len(x))
+            for s, rr in enumerate(x):
+                mvg[s] = multivariate_normal(rr - self.mu, self.covariance,
+                                             method)
+            return mvg
+
+        elif len(x.shape) == 1:
+            return multivariate_normal(x - self.mu, self.covariance, method)
+
+        else:
+            raise ValueError('Input array must be 1- or 2-D.')
 
     def rvs(self, nsamples):
         return np.random.multivariate_normal(self.mu, self.covariance, nsamples)
