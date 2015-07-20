@@ -14,27 +14,34 @@ def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
     The estimation is based on n marginal posterior samples
     (indexed by s, with s = 0, ..., n-1).
 
-    :param array marginal_samples: samples from the parameter marginal\
-    posterior distribution. Dimensions are (n x k), where k is the number of
-    parameters.
+    :param array marginal_samples:
+    Samples from the parameter marginal posterior distribution. Dimensions are
+    (n x k), where k is the number of parameters.
 
-    :param callable lnlike: function to compute ln(likelihood) on the \
-    marginal samples.
-    :param callable lnprior: function to compute ln(prior density) on the \
-    marginal samples.
+    :param callable lnlike:
+        Function to compute ln(likelihood) on the marginal samples.
 
-    :param tuple likeargs: extra arguments passed to the likelihood function.
-    :param tuple priorargs: extra arguments passed to the lnprior function.
+    :param callable lnprior:
+        Function to compute ln(prior density) on the marginal samples.
 
-    :param str densityestimation: the method used to estimate the marginal \
-    posterior density of each model parameter ("normal", "kde", or "histogram").
+    :param tuple likeargs:
+        Extra arguments passed to the likelihood function.
+
+    :param tuple priorargs:
+        Extra arguments passed to the lnprior function.
+
+    :param str densityestimation:
+        The method used to estimate the marginal posterior density of each
+        model parameter ("normal", "kde", or "histogram").
 
 
     Other parameters
     ----------------
-    :param kwargs: additional arguments passed to estimate_density function.
-        :param nbins: number of bins used in "histogram method".
-        :type nbins: int
+    :param kwargs:
+        Additional arguments passed to estimate_density function.
+
+    :param int nbins:
+        Number of bins used in "histogram method".
 
     :return:
 
@@ -93,15 +100,18 @@ def estimate_density(x, method='histogram', **kwargs):
     Estimate probability density based on a sample. Return value of density at
     sample points.
 
-    :param array_like x: sample
-    :param str method: method used for the estimation. 'histogram' estimates \
-    the density based on a normalised histogram of nbins bins; 'kde' uses a 1D \
-    non-parametric gaussian kernel; 'normal approximates the distribution by a \
-    normal distribution
+    :param array_like x: sample.
+
+    :param str method:
+        Method used for the estimation. 'histogram' estimates the density based
+        on a normalised histogram of nbins bins; 'kde' uses a 1D non-parametric
+        gaussian kernel; 'normal approximates the distribution by a normal
+        distribution.
 
     Additional parameters
 
-    :param int nbins: number of bins used in "histogram method".
+    :param int nbins:
+        Number of bins used in "histogram method".
 
     :return: density estimation at the sample points.
     """
@@ -137,11 +147,14 @@ def make_marginal_samples(joint_samples, nsamples=None):
     Reshuffles samples from joint distribution of k parameters to obtain samples
     from the _marginal_ distribution of each parameter.
 
-    :param joint_samples: samples from the parameter joint distribution.
-    :type joint_samples: array_like (n x k), where k is the number of paramters
-    :param nsamples: number of samples to produce. If 0, use number of joint
-    samples.
-    :type nsamples: int or None
+    :param array joint_samples:
+        Samples from the parameter joint distribution. Dimensions are (n x k),
+        where k is the number of parameters.
+
+    :param nsamples:
+        Number of samples to produce. If 0, use number of joint samples.
+    :type nsamples:
+        int or None
     """
 
     # Copy joint samples before reshuffling in place.
