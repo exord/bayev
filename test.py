@@ -76,18 +76,15 @@ def test_perrakis(nsamples=300):
     # Compute Perrakis estimate
     pe = perr.compute_perrakis_estimate(marg_samples, pl.pastis_loglike,
                                         pl.pastis_logprior,
-                                        likeargs=(vd.keys(), target, simul),
-                                        priorargs=(vd.keys(), target, simul),
+                                        lnlikeargs=(vd.keys(), target, simul),
+                                        lnpriorargs=(vd.keys(), target, simul),
                                         nbins=200)
 
     print('Perrakis estimate is {:.4f}'.format(pe))
     return
 
 
-def test_chib(nsamples=300):
-
-    target = 'PlSystem1'
-    simul = 'k4d3_activityterm_noisemodel1'
+def test_chib_pastis(target, simul, nsamples=300):
 
     # Read test data
     f = open('/Users/rodrigo/homeobs/PASTIS/resultfiles/{0}/'
@@ -117,38 +114,8 @@ def test_chib(nsamples=300):
     return
 
 
-def test_chib2(posterior_sample, lnlike_post, lnprior_post):
-
-    target = 'PlSystem1'
-    simul = 'k2d3_activityterm_noisemodel1'
-
-    # Read test data
-    f = open('/Users/rodrigo/homeobs/PASTIS/resultfiles/{0}/'
-             '{0}_{1}_Beta1.000000_mergedchain.dat'.format(target, simul))
-    vd = pickle.load(f)
-    vd = vd.get_value_dict()
-    f.close()
-
-    # Remove unnecessary items
-    lnlike_post = vd.pop('logL')
-    post = vd.pop('posterior')
-    lnpost_post = post/log10(e)
-    lnprior_post = lnpost_post - lnlike_post
-
-    # Produce marginal sample from joint sample
-    posterior_sample = n.array(vd.values()).T
-
-    fp, lnpost0 = get_fixed_point(posterior_sample, lnlike_post,
-                                  (lnlike_post, lnprior_post))
-
-    k = np.cov(posterior_sample.T)
-    qprob = lib.MultivariateGaussian(fp, k)
-
-    return qprob
-
-
 def benchmark_multivariate(nsamples=2 ** n.arange(6, 14),
-                           kdim=2 ** n.arange(4, 10)):
+                           kdim=(2**n.arange(4, 10))):
 
     dt = [('cholesky', n.float64),
           ('solve', n.float64)
@@ -213,6 +180,7 @@ def check_fixed_point(posterior_samples, fixed_point, labels=None):
     return
 
 if __name__ == '__main__':
-    test_chib(500)
+    test_chib_pastis(target='PlSystem1', simul='k4d3_activityterm_noisemodel1',
+                     nsamples=500)
     pass
     # benchmark_multivariate(nsamples=512)

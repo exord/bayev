@@ -14,6 +14,40 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
                         lnpriorargs=(), lnlike_post=None, lnprior_post=None):
 
     """
+    Computes the Chib & Jeliazkov estimate of the bayesian evidence.
+
+    The estimation is based on an posterior sample with n elements
+    (indexed by s, with s = 0, ..., n-1), and a sample from the proposal
+    distribution used in MCMC (qprob) of size nsample. Note that if qprob is
+    None, it is estimated as a multivariate Gaussian.
+
+    :param array posterior_sample:
+        A sample from the parameter posterior distribution. Dimensions are
+        (n x k), where k is the number of parameters.
+
+    :param callable lnlikefunc:
+        Function to compute ln(likelihood) on the marginal samples.
+
+    :param callable lnpriorfunc:
+        Function to compute ln(prior density) on the marginal samples.
+
+    :param array param_post:
+        Posterior parameter sample used to obtained fixed point needed by the
+        algorithm.
+
+    :param int nsamples:
+        Size of sample drawn from proposal distribution.
+
+    :param object or None qprob:
+        Proposal distribution function. If None, it will be estimated as a
+        multivariate Gaussian. If not None, it must possess the methods pdf and
+        rvs. See scipy.stats.rv_continuous.
+
+    :param tuple lnlikeargs:
+        Extra arguments passed to the likelihood function.
+
+    :param tuple lnpriorargs:
+        Extra arguments passed to the lnprior function.
 
     :param array lnlike_post:
         log(likelihood) computed over a posterior sample. 1-D array of length n.
@@ -21,24 +55,13 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
     :param array lnprior_post:
         log(prior) computed over a posterior sample. 1-D array of length n.
 
-    :param array proposal_samples:
-        Samples from the proposal distribution of the Metropolis-Hastings
-        algorithm. Dimensions are (n x k), where k is the number of parameters.
-
-    :param np.ndarray fixed_point:
-        Posterior point used as reference for the estimation of the ordinate.
-        "For estimation efficiency [this point] is generally taken to be a
-        high-density point in the support of the posterior." (see reference).
-        Dimensions are (k,).
-
-    :param callable mratiofunc:
-        Function to compute Metropolis ratio.
-
     :raises AttributeError:
         if instace qprob does not have method 'pdf' or 'rvs'.
 
     :raises TypeError:
         if methods 'pdf' or 'rvs' from instance qprob are not callable.
+
+    :returns: Natural logarithm of estimated Bayesian evidence.
 
     References
     ----------

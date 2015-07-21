@@ -5,8 +5,8 @@ from math import sqrt, log
 import lib
 
 
-def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
-                              likeargs=(), priorargs=(),
+def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
+                              lnlikeargs=(), lnpriorargs=(),
                               densityestimation='histogram', **kwargs):
     """
     Computes the Perrakis estimate of the bayesian evidence.
@@ -14,20 +14,20 @@ def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
     The estimation is based on n marginal posterior samples
     (indexed by s, with s = 0, ..., n-1).
 
-    :param array marginal_samples:
-    Samples from the parameter marginal posterior distribution. Dimensions are
-    (n x k), where k is the number of parameters.
+    :param array marginal_sample:
+        A sample from the parameter marginal posterior distribution.
+        Dimensions are (n x k), where k is the number of parameters.
 
-    :param callable lnlike:
+    :param callable lnlikefunc:
         Function to compute ln(likelihood) on the marginal samples.
 
-    :param callable lnprior:
+    :param callable lnpriorfunc:
         Function to compute ln(prior density) on the marginal samples.
 
-    :param tuple likeargs:
+    :param tuple lnlikeargs:
         Extra arguments passed to the likelihood function.
 
-    :param tuple priorargs:
+    :param tuple lnpriorargs:
         Extra arguments passed to the lnprior function.
 
     :param str densityestimation:
@@ -40,9 +40,6 @@ def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
     :param kwargs:
         Additional arguments passed to estimate_density function.
 
-    :param int nbins:
-        Number of bins used in "histogram method".
-
     :return:
 
     References
@@ -50,19 +47,19 @@ def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
     Perrakis et al. (2014; arXiv:1311.0674)
     """
 
-    if not isinstance(marginal_samples, np.ndarray):
-        marginal_samples = np.array(marginal_samples)
+    if not isinstance(marginal_sample, np.ndarray):
+        marginal_sample = np.array(marginal_sample)
 
-    number_parameters = marginal_samples.shape[1]
+    number_parameters = marginal_sample.shape[1]
 
     ##
     # Estimate marginal posterior density for each parameter.
-    marginal_posterior_density = np.zeros(marginal_samples.shape)
+    marginal_posterior_density = np.zeros(marginal_sample.shape)
 
     for parameter_index in range(number_parameters):
 
         # Extract samples for this parameter.
-        x = marginal_samples[:, parameter_index]
+        x = marginal_sample[:, parameter_index]
 
         # Estimate density with method "densityestimation".
         marginal_posterior_density[:, parameter_index] = \
@@ -74,8 +71,8 @@ def compute_perrakis_estimate(marginal_samples, lnlike, lnprior,
 
     ##
     # Compute lnprior and likelihood in marginal sample.
-    log_prior = lnprior(marginal_samples, *priorargs)
-    log_likelihood = lnlike(marginal_samples, *likeargs)
+    log_prior = lnpriorfunc(marginal_sample, *lnpriorargs)
+    log_likelihood = lnlikefunc(marginal_sample, *lnlikeargs)
     ##
 
     # Mask values with zero likelihood (a problem in lnlike)
