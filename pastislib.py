@@ -176,8 +176,10 @@ def pastis_loglike(samples, params, target, simul, posteriorfile=None,
                                                        False,
                                                        False)
 
-        except (ValueError, RuntimeError, pastis.EvolTrackError):
-            loglike[s] = 0
+        except (ValueError, RuntimeError, pastis.EvolTrackError,
+                pastis.EBOPparamError):
+            print('Error in likelihood computation, setting lnlike to -n.inf')
+            loglike[s] = -np.inf
             pass
 
     return loglike
