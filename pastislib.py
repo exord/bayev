@@ -60,24 +60,8 @@ def get_posterior_samples(target, simul, mergefile=None,
     return vdm
 
 
-def pastis_loglike(samples, params, target, simul, posteriorfile=None,
-                   datadict=None,
-                   pastisfile=None):
-    """
-    A wrapper to run the PASTIS.MCMC.get_likelihood function.
-
-    Computes the loglikelihood on a series of points given in samples using
-    PASTIS.MCMC.get_likelihood.
-
-    :param np.array samples: parameter samples on which to compute log
-    likelihood. Array dimensions must be (n x k), where *n* is the number of
-    samples and *k* is the number of model parameters.
-
-    :param list params: parameter names. Must be in the PASTIS format: \
-    objectname_parametername.
-
-    :return:
-    """
+def pastis_init(target, simul, posteriorfile=None, datadict=None,
+                pastisfile=None):
 
     # Read configuration dictionaries.
     configdicts = read_pastis_file(target, simul, pastisfile)
@@ -111,6 +95,62 @@ def pastis_loglike(samples, params, target, simul, posteriorfile=None,
     reload(pastis.ObjectBuilder)
     reload(pastis.models.RV)
     reload(pastis.MCMC.PASTIS_MCMC)
+
+    return
+
+
+def pastis_loglike(samples, params, target, simul, posteriorfile=None,
+                   datadict=None, pastisfile=None):
+    """
+    A wrapper to run the PASTIS.MCMC.get_likelihood function.
+
+    Computes the loglikelihood on a series of points given in samples using
+    PASTIS.MCMC.get_likelihood.
+
+    :param np.array samples: parameter samples on which to compute log
+    likelihood. Array dimensions must be (n x k), where *n* is the number of
+    samples and *k* is the number of model parameters.
+
+    :param list params: parameter names. Must be in the PASTIS format: \
+    objectname_parametername.
+
+    :return:
+    """
+
+    # Read configuration dictionaries.
+    configdicts = read_pastis_file(target, simul, pastisfile)
+
+    infodict, input_dict = configdicts[0], configdicts[1].copy()
+
+    # Read data dictionary.
+    if datadict is None:
+        datadict = get_datadict(target, simul, pastisfile=pastisfile)
+
+    # Obtain PASTIS version the merged chain was constructed with.
+    vdm = get_posterior_samples(target, simul, mergefile=posteriorfile)
+    modulename = vdm.__module__.split('.')[0]
+
+    # Import the correct PASTIS version used to construct a given posterior
+    # sample
+    pastis = importlib.import_module(modulename)
+
+    """
+    # To deal with potential drifts, we need initialize to fix TrefRV.
+    pastis.initialize(infodict, datadict, input_dict)
+
+    # import PASTIS_rhk.MCMC as MCMC
+    # MCMC.PASTIS_MCMC.get_likelihood
+
+    importlib.import_module('.MCMC.PASTIS_MCMC', package=pastis.__name__)
+    importlib.import_module('.AstroClasses', package=pastis.__name__)
+    importlib.import_module('.ObjectBuilder', package=pastis.__name__)
+    importlib.import_module('.models.RV', package=pastis.__name__)
+
+    reload(pastis.AstroClasses)
+    reload(pastis.ObjectBuilder)
+    reload(pastis.models.RV)
+    reload(pastis.MCMC.PASTIS_MCMC)
+    """
 
     # Prepare output arrays
     loglike = np.zeros(samples.shape[0])

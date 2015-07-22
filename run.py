@@ -125,6 +125,11 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
     if estimator == 'chib':
         methodargs['lnprior_post'] = lnprior_post
         methodargs['lnlike_post'] = lnlike_post
+        if 'param_post' not in methodargs:
+            methodargs['param_post'] = lnlike_post
+
+    # Initialise pastis
+    pl.pastis_init(target, simul)
 
     ev = run_montecarlo(posterior_sample, pl.pastis_loglike, pl.pastis_logprior,
                         (vd.keys(), target, simul), (vd.keys(), target, simul),
@@ -142,10 +147,10 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
                                                'histogram')
 
             filename = os.path.join(pastis.resultpath, target,
-                                    '{0}_{1}_evidence_{2}_{3}_{4}samples.dat'
+                                    '{0}_{1}_evidence_{2}_{3}_{4}bins.dat'
                                     ''.format(target, simul, estimator,
                                               densityestimation,
-                                              methodargs['nsamples']))
+                                              methodargs['nbins']))
 
         else:
             raise NameError
