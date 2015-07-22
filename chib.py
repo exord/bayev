@@ -127,15 +127,23 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
     proposal_sample = qprob.rvs(nsamples)
 
     # Compute likelihood and prior on proposal_sample
-    lnlike_prop = lnlikefunc(proposal_sample, *lnlikeargs)
     lnprior_prop = lnpriorfunc(proposal_sample, *lnpriorargs)
-    # Note that values from the proposal distribution sample outside of the
-    # prior support will get lnprior_prop = -np.inf. This is correctly taken
-    # into account naturally in what follows. We check, however, that not
-    # all samples have zero prior probability
+
+    # Note that elements from the proposal distribution sample outside of the
+    # prior support will get lnprior_prop = -np.inf. These elements should be
+    # included in the denominator average below as zero (see reference), which
+    # is naturally obtained thanks to the ability of numpy to treat inf.
+    # We check, however, that not all samples have zero prior probability
     if np.all(lnprior_prop == -np.inf):
         raise ValueError('All samples from proposal density have zero prior'
                          'probability. Increase nsample.')
+
+    # Now compute likelihood only on the samples where prior != 0.
+    # This is to avoid computing on sample elements that will nevertheless
+    # give zero (i.e. speed the code).
+    lnlike_prop = np.full_like(lnprior_prop, -np.inf)
+    ind = lnprior_prop != -np.inf
+    lnlike_prop[ind] = lnlikefunc(proposal_sample[ind, :], *lnlikeargs)
 
     # Get Metropolis ratio with respect to fixed point over proposal sample
     lnalpha_prop = metropolis_ratio(lnpost0, lnprior_prop + lnlike_prop)
