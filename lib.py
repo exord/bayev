@@ -14,6 +14,34 @@ def log_sum(log_summands):
     return a
 
 
+def numerical_error(loglike, logweight, logevidence):
+    """
+    Compute the standard numerical error as defined by Geweke (Econometria 57,
+    N. 6, pp. 1317-1339).
+
+    :param array loglike:
+        1-D array with log(likelihood)values evaluated in the sample drawn from
+        the importance sampling density.
+
+    :param array logweight:
+        1-D array with log(weight) values evaluated in the sample drawn from the
+        importance sampling density. The weight function is the prior density
+        divided the importance sampling density (w = pi/I)
+
+    :param float logevidence:
+        log of the marginal likelihood estimation obtained.
+
+    :return:
+    """
+
+    log_likeminusevidence = np.zeros_like(loglike)
+    for i in range(len(loglike)):
+        log_likeminusevidence = log_sum(np.array([loglike[i], logevidence +
+                                                  np.log(-1)]))
+
+    return log_sum(log(like - e) + 2*logweight) - 2 * log_sum(logweight)
+
+
 def multivariate_normal(r, c, method='cholesky'):
     """
     Computes multivariate normal density for "residuals" vector r and
