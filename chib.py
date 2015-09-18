@@ -253,8 +253,8 @@ def metropolis_ratio(lnpost0, lnpost1):
 
     :return: log(Metropolis ratio)
     """
-    if (hasattr(lnpost0, '__iter__') and hasattr(lnpost1, '__iter__')
-            and len(lnpost0) != len(lnpost1)):
+    if (hasattr(lnpost0, '__iter__') and hasattr(lnpost1, '__iter__') and
+            len(lnpost0) != len(lnpost1)):
         raise ValueError('lnpost0 and lnpost1 have different lenghts.')
 
     return np.minimum(lnpost1 - lnpost0, 0.0)
