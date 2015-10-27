@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 import importlib
 
-import perrakis as p
+import perrakis as perr
 import chib as c
 
 __author__ = 'Rodrigo F. Diaz'
@@ -26,15 +26,15 @@ def run_montecarlo(posterior_sample, lnlikefunc, lnpriorfunc, lnlikeargs,
         nbins = methodargs.pop('nbins', 200)
 
         for i in range(nmc):
-            marginal_samples = p.make_marginal_samples(posterior_sample,
-                                                       nsamples=n)
+            marginal_samples = perr.make_marginal_samples(posterior_sample,
+                                                          nsamples=n)
 
-            ev[i] = p.compute_perrakis_estimate(marginal_samples, lnlikefunc,
-                                                lnpriorfunc,
-                                                lnlikeargs=lnlikeargs,
-                                                lnpriorargs=lnpriorargs,
-                                                densityestimation=densest,
-                                                nbins=nbins)
+            ev[i] = perr.compute_perrakis_estimate(marginal_samples, lnlikefunc,
+                                                   lnpriorfunc,
+                                                   lnlikeargs=lnlikeargs,
+                                                   lnpriorargs=lnpriorargs,
+                                                   densityestimation=densest,
+                                                   nbins=nbins)
 
     elif estimator == 'chib':
 

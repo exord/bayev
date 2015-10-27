@@ -1,14 +1,15 @@
-__author__ = 'Rodrigo F. Diaz'
-
 import pickle
+import time
 import bayev.pastislib as pl
 import bayev.chib as chib
 import bayev.perrakis as perr
 import bayev.lib
 import numpy as n
-from math import e, log10
-import time
 import matplotlib.pylab as plt
+
+from math import e, log10
+
+__author__ = 'Rodrigo F. Diaz'
 
 
 def test_pastis_logprior(nsamples=300):
