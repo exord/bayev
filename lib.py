@@ -7,10 +7,10 @@ import math
 
 def log_sum(log_summands):
     a = np.inf
+    x = log_summands.copy()
     while a == np.inf or a == -np.inf or np.isnan(a):
-        a = log_summands[0] + np.log(1 + np.sum(np.exp(log_summands[1:] -
-                                                       log_summands[0])))
-        random.shuffle(log_summands)
+        a = x[0] + np.log(1 + np.sum(np.exp(x[1:] - x[0])))
+        random.shuffle(x)
     return a
 
 
