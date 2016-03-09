@@ -42,7 +42,7 @@ def run_montecarlo(posterior_sample, lnlikefunc, lnpriorfunc, lnlikeargs,
         try:
             lnlike_post = methodargs['lnlike_post']
         except KeyError:
-            print('log(likelihood) in posterior sample not given. It will'
+            print('log(likelihood) in posterior sample not given. It will '
                   'be computed')
             lnlike_post = lnlikefunc(posterior_sample, *lnlikeargs)
 
@@ -79,10 +79,10 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
 
     :param str simul:
         String identifying the simulation and model for which the evidence is to
-        be performed.
+        be estimated.
 
     :param str estimator:
-        Name of the estimator used.
+        Name of the estimator used. Options are 'chib' or 'perrakis'.
 
     :param methodargs:
         Dictionary containing the arguments for the estimator.
@@ -145,12 +145,13 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
         elif estimator == 'perrakis':
             densityestimation = methodargs.pop('densityestimation',
                                                'histogram')
+            nbins = methodargs.pop('nbins', 200)
 
             filename = os.path.join(pastis.resultpath, target,
                                     '{0}_{1}_evidence_{2}_{3}_{4}bins.dat'
                                     ''.format(target, simul, estimator,
                                               densityestimation,
-                                              methodargs['nbins']))
+                                              nbins))
 
         else:
             raise NameError
