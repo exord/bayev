@@ -66,14 +66,14 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
             estimate_density(x, method=densityestimation, **kwargs)
 
     # Compute produt of marginal posterior densities for all parameters
-    prod_marginal_densities = marginal_posterior_density.prod(axis=1)
+    marginal_densities = marginal_posterior_density.prod(axis=1)
     ##
 
-    ##
-    # Compute lnprior and likelihood in marginal sample.
-    log_prior = lnpriorfunc(marginal_sample, *lnpriorargs)
+    # Compute log likelihood in marginal sample.
     log_likelihood = lnlikefunc(marginal_sample, *lnlikeargs)
-    ##
+
+    # Compute weights (i.e. prior over marginal density)
+    w = weight(marginal_sample, lnpriorfunc, lnpriorargs, marginal_densities)
 
     # Mask values with zero likelihood (a problem in lnlike)
     cond = log_likelihood != 0
@@ -82,14 +82,34 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
     # http://en.wikipedia.org/wiki/List_of_logarithmic_identities#Summation.2Fsubtraction
     # ln(sum(x)) = ln(x[0]) + ln(1 + sum( exp( ln(x[1:]) - ln(x[0]) ) ) )
     # log_summands = log_likelihood[cond] + np.log(prior_probability[cond])
-    #  - np.log(prod_marginal_densities[cond])
-    log_summands = (log_likelihood[cond] + log_prior[cond] -
-                    np.log(prod_marginal_densities[cond])
-                    )
-
-    perr = lib.log_sum(log_summands) - log(len(log_summands))
+    #  - np.log(marginal_densities[cond])
+    perr = lib.log_sum(w[cond] + log_likelihood[cond]) - log(len(w[cond]))
 
     return perr
+
+
+def weight(marginal_sample, lnpriorfunc, lnpriorargs, marginal_densities):
+    """
+    Compute the weights for the Perrakis estimator.
+
+    :param marginal_sample:
+        A sample from the parameter marginal posterior distribution.
+        Dimensions are (n x k), where k is the number of parameters.
+
+    :param callable lnpriorfunc:
+        Function to compute ln(prior density) on the marginal samples.
+
+    :param tuple lnpriorargs:
+        Extra arguments passed to the lnprior function.
+
+    :param array marginal_densities:
+        1-D array containing the value of the product of the marginal densities
+        evaluated in the marginal_sample.
+
+    :return: array with the wegiht values
+    """
+    log_prior = lnpriorfunc(marginal_sample, *lnpriorargs)
+    return log_prior - np.log(marginal_densities)
 
 
 def estimate_density(x, method='histogram', **kwargs):
@@ -161,12 +181,12 @@ def make_marginal_samples(joint_samples, nsamples=None):
     if nsamples > len(joint_samples) or nsamples is None:
         nsamples = len(joint_samples)
 
-    marginal_samples = joint_samples[-nsamples:, :].copy()
+    marginal_sample = joint_samples[-nsamples:, :].copy()
 
-    number_parameters = marginal_samples.shape[-1]
+    number_parameters = marginal_sample.shape[-1]
     # Reshuffle joint posterior samples to obtain _marginal_ posterior
     # samples
     for parameter_index in range(number_parameters):
-        random.shuffle(marginal_samples[:, parameter_index])
+        random.shuffle(marginal_sample[:, parameter_index])
 
-    return marginal_samples
+    return marginal_sample
