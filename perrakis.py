@@ -144,7 +144,7 @@ def make_marginal_samples(joint_samples, nsamples=None):
     Reshuffles samples from joint distribution of k parameters to obtain samples
     from the _marginal_ distribution of each parameter.
 
-    :param array joint_samples:
+    :param np.array joint_samples:
         Samples from the parameter joint distribution. Dimensions are (n x k),
         where k is the number of parameters.
 
@@ -157,7 +157,7 @@ def make_marginal_samples(joint_samples, nsamples=None):
     # Copy joint samples before reshuffling in place.
     # Keep only last nsamples
     # WARNING! Always taking the last nsamples. This is not changed
-    # with MonteCarlo
+    # at different MonteCarlo realisations.
     if nsamples > len(joint_samples) or nsamples is None:
         nsamples = len(joint_samples)
 
