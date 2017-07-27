@@ -159,34 +159,38 @@ def estimate_density(x, method='histogram', **kwargs):
         return density[density_indexes - 1]
 
 
-def make_marginal_samples(joint_samples, nsamples=None):
+def make_marginal_samples(joint_sample, nsamples=None, seed=None):
     """
     Reshuffles samples from joint distribution of k parameters to obtain samples
     from the _marginal_ distribution of each parameter.
 
-    :param np.array joint_samples:
-        Samples from the parameter joint distribution. Dimensions are (n x k),
+    :param np.array joint_sample:
+        Sample from the parameter joint distribution. Dimensions are (n x k),
         where k is the number of parameters.
 
     :param nsamples:
         Number of samples to produce. If 0, use number of joint samples.
     :type nsamples:
         int or None
+
+    :param seed:
+        If not None, use as seed for random number generator.
+    :type seed:
+        int or None
+
+    :return: shuffled version of joint distribution sample.
     """
+    if seed is not None:
+        np.random.seed(seed)
 
-    # Copy joint samples before reshuffling in place.
-    # Keep only last nsamples
-    # WARNING! Always taking the last nsamples. This is not changed
-    # at different MonteCarlo realisations.
-    if nsamples > len(joint_samples) or nsamples is None:
-        nsamples = len(joint_samples)
+    if nsamples > len(joint_sample) or nsamples is None:
+        nsamples = len(joint_sample)
 
-    marginal_sample = joint_samples[-nsamples:, :].copy()
-
-    number_parameters = marginal_sample.shape[-1]
-    # Reshuffle joint posterior samples to obtain _marginal_ posterior
+    # Randomly select parameter vector elements from different joint dist.
     # samples
-    for parameter_index in range(number_parameters):
-        random.shuffle(marginal_sample[:, parameter_index])
+    number_parameters = joint_sample.shape[-1]
 
-    return marginal_sample
+    ind = np.random.randint(joint_sample.shape[0],
+                            size=(nsamples, number_parameters))
+
+    return joint_sample[ind, range(number_parameters)]
