@@ -2,7 +2,7 @@
 Module to compute the estimation of the evidence using the method by
 Chib and Jeliazkov (2001).
 """
-from math import *
+from math import log
 import numpy as np
 import lib
 
@@ -169,15 +169,15 @@ def get_fixed_point(posterior_samples, param_post, (lnlike, lnprior),
 
     :param array or None param_post:
         A sample from the marginal posterior distribution of the parameter
-        chosen to identify the high-density point to use as fixed point. This is
-        typically one of the columns of posterior_samples, but could be any
+        chosen to identify the high-density point to use as fixed point. This 
+        is typically one of the columns of posterior_samples, but could be any
         1-D array of size n. If None, then a multivariate Gaussian kernel
         estimate of the joint posterior distribution is used.
 
     :param array or callable lnlike:
         Function to compute log(likelihood). If an array is given, this is
-        simply the log(likelihood) values at the posterior samples, and the
-         best value will be chosen from this array.
+        simply the log(likelihood) values at the posterior samples, and the 
+        best value will be chosen from this array.
 
     :param array or callable lnprior:
         Function to compute log(prior). If an array is given, this is
@@ -235,7 +235,7 @@ def get_fixed_point(posterior_samples, param_post, (lnlike, lnprior),
         return fixed_point, lnlike0 + lnprior0
 
     else:
-        raise NotImplemented
+        raise NotImplementedError
         pass
 
 
