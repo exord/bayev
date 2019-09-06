@@ -4,7 +4,7 @@ Chib and Jeliazkov (2001).
 """
 from math import log
 import numpy as np
-import lib
+from . import lib
 
 __all__ = ['compute_cj_estimate', ]
 
