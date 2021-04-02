@@ -2,7 +2,7 @@ import numpy as np
 import random
 import scipy.stats
 from math import sqrt, log
-import lib
+from . import lib
 
 
 def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
