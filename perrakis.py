@@ -53,7 +53,7 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
 
     ##
     # Estimate marginal posterior density for each parameter.
-    marginal_posterior_density = np.zeros(marginal_sample.shape)
+    log_marginal_posterior_density = np.zeros(marginal_sample.shape)
 
     for parameter_index in range(number_parameters):
 
@@ -61,18 +61,18 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
         x = marginal_sample[:, parameter_index]
 
         # Estimate density with method "densityestimation".
-        marginal_posterior_density[:, parameter_index] = \
-            estimate_density(x, method=densityestimation, **kwargs)
+        log_marginal_posterior_density[:, parameter_index] = \
+            estimate_logdensity(x, method=densityestimation, **kwargs)
 
     # Compute produt of marginal posterior densities for all parameters
-    marginal_densities = marginal_posterior_density.prod(axis=1)
+    log_marginal_densities = log_marginal_posterior_density.sum(axis=1)
     ##
 
     # Compute log likelihood in marginal sample.
     log_likelihood = lnlikefunc(marginal_sample, *lnlikeargs)
 
     # Compute weights (i.e. prior over marginal density)
-    w = weight(marginal_sample, lnpriorfunc, lnpriorargs, marginal_densities)
+    w = weight(marginal_sample, lnpriorfunc, lnpriorargs, log_marginal_densities)
 
     # Mask values with zero likelihood (a problem in lnlike)
     cond = log_likelihood != 0
@@ -87,7 +87,7 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
     return perr
 
 
-def weight(marginal_sample, lnpriorfunc, lnpriorargs, marginal_densities):
+def weight(marginal_sample, lnpriorfunc, lnpriorargs, log_marginal_densities):
     """
     Compute the weights for the Perrakis estimator.
 
@@ -101,19 +101,19 @@ def weight(marginal_sample, lnpriorfunc, lnpriorargs, marginal_densities):
     :param tuple lnpriorargs:
         Extra arguments passed to the lnprior function.
 
-    :param array marginal_densities:
-        1-D array containing the value of the product of the marginal densities
+    :param array log_marginal_densities:
+        1-D array containing the value of the sum of the log marginal densities
         evaluated in the marginal_sample.
 
     :return: array with the wegiht values
     """
     log_prior = lnpriorfunc(marginal_sample, *lnpriorargs)
-    return log_prior - np.log(marginal_densities)
+    return log_prior - log_marginal_densities
 
 
-def estimate_density(x, method='histogram', **kwargs):
+def estimate_logdensity(x, method='histogram', **kwargs):
     """
-    Estimate probability density based on a sample. Return value of density at
+    Estimate log probability density based on a sample. Return value of density at
     sample points.
 
     :param array_like x: sample.
@@ -136,12 +136,12 @@ def estimate_density(x, method='histogram', **kwargs):
 
     if method == 'normal':
         # Approximate each parameter distribution by a normal.
-        return scipy.stats.norm.pdf(x, loc=x.mean(), scale=sqrt(x.var()))
+        return scipy.stats.norm.logpdf(x, loc=x.mean(), scale=sqrt(x.var()))
 
     elif method == 'kde':
         # Approximate each parameter distribution using a gaussian
         # kernel estimation
-        return scipy.stats.gaussian_kde(x)(x)
+        return scipy.stats.gaussian_kde(x).logpdf(x)
 
     elif method == 'histogram':
         # Approximate each parameter distribution based on the histogram
@@ -155,7 +155,7 @@ def estimate_density(x, method='histogram', **kwargs):
         density_indexes = np.where(density_indexes > 0, density_indexes,
                                    density_indexes + 1)
 
-        return density[density_indexes - 1]
+        return np.log(density[density_indexes - 1])
 
 
 def make_marginal_samples(joint_sample, nsamples=None, seed=None):
