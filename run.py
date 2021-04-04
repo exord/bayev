@@ -6,8 +6,8 @@ import pickle
 import numpy as np
 import importlib
 
-import perrakis as perr
-import chib as c
+from . import perrakis as perr
+from . import chib as c
 
 __author__ = 'Rodrigo F. Diaz'
 
