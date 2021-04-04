@@ -29,7 +29,8 @@ def run_montecarlo(posterior_sample, lnlikefunc, lnpriorfunc, lnlikeargs,
             marginal_samples = perr.make_marginal_samples(posterior_sample,
                                                           nsamples=n)
 
-            ev[i] = perr.compute_perrakis_estimate(marginal_samples, lnlikefunc,
+            ev[i] = perr.compute_perrakis_estimate(marginal_samples,
+                                                   lnlikefunc,
                                                    lnpriorfunc,
                                                    lnlikeargs=lnlikeargs,
                                                    lnpriorargs=lnpriorargs,
@@ -71,15 +72,15 @@ def run_montecarlo(posterior_sample, lnlikefunc, lnpriorfunc, lnlikeargs,
 def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
                           pastisversion='PASTIS_NM', save=True):
     """
-    Function to estimate the Bayesian evidence given a posterior sample obtained
-    with the PASTIS MCMC algorithm.
+    Function to estimate the Bayesian evidence given a posterior sample
+    obtained with the PASTIS MCMC algorithm.
 
     :param str target:
         Name of the target used to retrieve the data and posterior simulations.
 
     :param str simul:
-        String identifying the simulation and model for which the evidence is to
-        be estimated.
+        String identifying the simulation and model for which the evidence is
+        to be estimated.
 
     :param str estimator:
         Name of the estimator used. Options are 'chib' or 'perrakis'.
@@ -106,8 +107,8 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
 
     # Read data
     f = open(os.path.join(pastis.resultpath, target,
-                          '{0}_{1}_Beta1.000000_mergedchain.dat'.format(target,
-                                                                        simul)))
+                          '{0}_{1}_Beta1.000000_mergedchain'
+                          '.dat'.format(target, simul)))
     vd = pickle.load(f)
     vd = vd.get_value_dict()
     f.close()
@@ -131,7 +132,8 @@ def run_montecarlo_pastis(target, simul, estimator, methodargs, nmc,
     # Initialise pastis
     pl.pastis_init(target, simul)
 
-    ev = run_montecarlo(posterior_sample, pl.pastis_loglike, pl.pastis_logprior,
+    ev = run_montecarlo(posterior_sample, pl.pastis_loglike,
+                        pl.pastis_logprior,
                         (vd.keys(), target, simul), (vd.keys(), target, simul),
                         methodargs.copy(), estimator=estimator, nmc=nmc)
 

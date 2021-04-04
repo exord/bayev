@@ -50,7 +50,8 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
         Extra arguments passed to the lnprior function.
 
     :param array lnlike_post:
-        log(likelihood) computed over a posterior sample. 1-D array of length n.
+        log(likelihood) computed over a posterior sample. 1-D array of
+        length n.
 
     :param array lnprior_post:
         log(prior) computed over a posterior sample. 1-D array of length n.
@@ -169,17 +170,17 @@ def get_fixed_point(posterior_samples, param_post, funcs,
 
     :param array or None param_post:
         A sample from the marginal posterior distribution of the parameter
-        chosen to identify the high-density point to use as fixed point. This 
+        chosen to identify the high-density point to use as fixed point. This
         is typically one of the columns of posterior_samples, but could be any
         1-D array of size n. If None, then a multivariate Gaussian kernel
         estimate of the joint posterior distribution is used.
 
     :param iterable of len 2 funcs:
         A list containing to callables or arrays, as follows:
-            
+
     :param array or callable lnlike:
         Function to compute log(likelihood). If an array is given, this is
-        simply the log(likelihood) values at the posterior samples, and the 
+        simply the log(likelihood) values at the posterior samples, and the
         best value will be chosen from this array.
 
     :param array or callable lnprior:
@@ -202,7 +203,7 @@ def get_fixed_point(posterior_samples, param_post, funcs,
     """
     lnlike = funcs[0]
     lnprior = funcs[1]
-    
+
     if param_post is not None:
 
         # Use median of param_post as fixed point.

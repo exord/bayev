@@ -91,10 +91,10 @@ def pastis_init(target, simul, posteriorfile=None, datadict=None,
     importlib.import_module('.ObjectBuilder', package=pastis.__name__)
     importlib.import_module('.models.RV', package=pastis.__name__)
 
-    reload(pastis.AstroClasses)
-    reload(pastis.ObjectBuilder)
-    reload(pastis.models.RV)
-    reload(pastis.MCMC.PASTIS_MCMC)
+    importlib.reload(pastis.AstroClasses)
+    importlib.reload(pastis.ObjectBuilder)
+    importlib.reload(pastis.models.RV)
+    importlib.reload(pastis.MCMC.PASTIS_MCMC)
 
     return
 
@@ -120,7 +120,7 @@ def pastis_loglike(samples, params, target, simul, posteriorfile=None,
     # Read configuration dictionaries.
     configdicts = read_pastis_file(target, simul, pastisfile)
 
-    infodict, input_dict = configdicts[0], configdicts[1].copy()
+    input_dict = configdicts[1].copy()
 
     # Read data dictionary.
     if datadict is None:
@@ -205,7 +205,7 @@ def pastis_logprior(samples, params, target, simul, posteriorfile=None,
     # Read configuration dictionaries.
     configdicts = read_pastis_file(target, simul, pastisfile)
 
-    infodict, input_dict = configdicts[0], configdicts[1].copy()
+    input_dict = configdicts[1].copy()
     priordict = get_priordict(target, simul, pastisfile=pastisfile)
 
     # Obtain PASTIS version the merged chain was constructed with.

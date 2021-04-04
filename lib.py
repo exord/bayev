@@ -2,7 +2,7 @@ import numpy as np
 import scipy.linalg
 import scipy.stats
 import random
-import math
+from math import log, pi, e
 
 
 def log_sum(log_summands):
@@ -24,9 +24,9 @@ def numerical_error(loglike, logweight, logevidence):
         the importance sampling density.
 
     :param array logweight:
-        1-D array with log(weight) values evaluated in the sample drawn from the
-        importance sampling density. The weight function is the prior density
-        divided the importance sampling density (w = pi/I)
+        1-D array with log(weight) values evaluated in the sample drawn from
+        the importance sampling density. The weight function is the prior
+        density divided the importance sampling density (w = pi/I)
 
     :param float logevidence:
         log of the marginal likelihood estimation obtained.
@@ -57,20 +57,23 @@ def multivariate_normal(r, c, method='cholesky'):
         Method used to compute multivariate density.
         Possible values are:
             * "cholesky": uses the Cholesky decomposition of the covariance c,
-              implemented in scipy.linalg.cho_factor and scipy.linalg.cho_solve.
+              implemented in scipy.linalg.cho_factor and
+              scipy.linalg.cho_solve.
             * "solve": uses the numpy.linalg functions solve() and slogdet().
 
     :return array: multivariate density at vector position r.
     """
 
     # Compute normalization factor used for all methods.
-    kk = len(r) * math.log(2*math.pi)
+    kk = len(r) * log(2*pi)
 
     if method == 'cholesky':
         # Use Cholesky decomposition of covariance.
         cho, lower = scipy.linalg.cho_factor(c)
         alpha = scipy.linalg.cho_solve((cho, lower), r)
-        return -0.5 * (kk + np.dot(r, alpha) + 2 * np.sum(np.log(np.diag(cho))))
+        return -0.5 * (kk + np.dot(r, alpha) +
+                       2 * np.sum(np.log(np.diag(cho)))
+                       )
 
     elif method == 'solve':
         # Use slogdet and solve
@@ -109,4 +112,5 @@ class MultivariateGaussian(scipy.stats.rv_continuous):
             raise ValueError('Input array must be 1- or 2-D.')
 
     def rvs(self, nsamples):
-        return np.random.multivariate_normal(self.mu, self.covariance, nsamples)
+        return np.random.multivariate_normal(self.mu, self.covariance,
+                                             nsamples)

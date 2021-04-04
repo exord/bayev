@@ -126,8 +126,6 @@ def benchmark_multivariate(nsamples=2 ** n.arange(6, 14),
     works = n.empty(len(kdim), dtype=bool)
 
     for i, k in enumerate(kdim):
-        print k
-
         r = n.random.rand(nsamples, k)
         c = n.cov(r, rowvar=0)
         c[n.diag_indices_from(c)] += 1e-10
@@ -138,7 +136,8 @@ def benchmark_multivariate(nsamples=2 ** n.arange(6, 14),
         mvcho = n.empty(r.shape[0])
 
         for j in range(len(r)):
-            mvcho[j] = bayev.lib.multivariate_normal(r[j], c, method='cholesky')
+            mvcho[j] = bayev.lib.multivariate_normal(r[j], c,
+                                                     method='cholesky')
 
         tint = time.time()
         times['cholesky'][i] = tint - ti
@@ -176,9 +175,10 @@ def check_fixed_point(posterior_samples, fixed_point, labels=None):
         if labels is not None:
             ax.set_title(labels[i])
         plt.draw()
-        raw_input('Hit any key to see next parameter.')
+        input('Hit any key to see next parameter.')
         plt.clf()
     return
+
 
 if __name__ == '__main__':
     test_chib_pastis(target='PlSystem1', simul='k4d3_activityterm_noisemodel1',

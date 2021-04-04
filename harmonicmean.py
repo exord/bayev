@@ -14,8 +14,9 @@ def compute_harmonicmean(lnlike_post, posterior_sample=None, lnlikefunc=None,
     log(likelihood) in this sample is passed.
 
     :param array lnlike_post:
-        log(likelihood) computed over a posterior sample. 1-D array of length n.
-        If an emply array is given, then compute from posterior sample.
+        log(likelihood) computed over a posterior sample. 1-D array of
+        length n. If an emply array is given, then compute from posterior
+        sample.
 
     :param array posterior_sample:
         A sample from the parameter posterior distribution.
@@ -74,5 +75,6 @@ def run_hme_mc(log_likelihood, nmc, samplesize):
         hme[i] = compute_harmonicmean(log_likelihood, size=samplesize)
 
     return hme
+
 
 __author__ = 'Rodrigo F. Diaz'

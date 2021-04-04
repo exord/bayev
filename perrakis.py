@@ -4,6 +4,7 @@ from math import sqrt, log
 
 from . import lib
 
+
 def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
                               lnlikeargs=(), lnpriorargs=(),
                               densityestimation='histogram', **kwargs):
@@ -72,7 +73,8 @@ def compute_perrakis_estimate(marginal_sample, lnlikefunc, lnpriorfunc,
     log_likelihood = lnlikefunc(marginal_sample, *lnlikeargs)
 
     # Compute weights (i.e. prior over marginal density)
-    w = weight(marginal_sample, lnpriorfunc, lnpriorargs, log_marginal_densities)
+    w = weight(marginal_sample, lnpriorfunc, lnpriorargs,
+               log_marginal_densities)
 
     # Mask values with zero likelihood (a problem in lnlike)
     cond = log_likelihood != 0
@@ -113,8 +115,8 @@ def weight(marginal_sample, lnpriorfunc, lnpriorargs, log_marginal_densities):
 
 def estimate_logdensity(x, method='histogram', **kwargs):
     """
-    Estimate log probability density based on a sample. Return value of density at
-    sample points.
+    Estimate log probability density based on a sample. Return value of density
+    at sampled points.
 
     :param array_like x: sample.
 
@@ -160,8 +162,8 @@ def estimate_logdensity(x, method='histogram', **kwargs):
 
 def make_marginal_samples(joint_sample, nsamples=None, seed=None):
     """
-    Reshuffles samples from joint distribution of k parameters to obtain samples
-    from the _marginal_ distribution of each parameter.
+    Reshuffles samples from joint distribution of k parameters to obtain
+    samples from the _marginal_ distribution of each parameter.
 
     :param np.array joint_sample:
         Sample from the parameter joint distribution. Dimensions are (n x k),
