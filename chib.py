@@ -157,7 +157,7 @@ def compute_cj_estimate(posterior_sample, lnlikefunc, lnpriorfunc,
     return lnpost0 - lnpostord
 
 
-def get_fixed_point(posterior_samples, param_post, (lnlike, lnprior),
+def get_fixed_point(posterior_samples, param_post, funcs,
                     lnlikeargs=(), lnpriorargs=()):
     """
     Find the posterior point closest to the model of the lnlike distribution.
@@ -174,6 +174,9 @@ def get_fixed_point(posterior_samples, param_post, (lnlike, lnprior),
         1-D array of size n. If None, then a multivariate Gaussian kernel
         estimate of the joint posterior distribution is used.
 
+    :param iterable of len 2 funcs:
+        A list containing to callables or arrays, as follows:
+            
     :param array or callable lnlike:
         Function to compute log(likelihood). If an array is given, this is
         simply the log(likelihood) values at the posterior samples, and the 
@@ -197,7 +200,9 @@ def get_fixed_point(posterior_samples, param_post, (lnlike, lnprior),
         the fixed point in parameter space and the value of
         log(prior * likelihood) evaluated at this point.
     """
-
+    lnlike = funcs[0]
+    lnprior = funcs[1]
+    
     if param_post is not None:
 
         # Use median of param_post as fixed point.
